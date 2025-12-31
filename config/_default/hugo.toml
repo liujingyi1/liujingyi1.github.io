@@ -8,6 +8,10 @@ theme = "book"
 [pagination]
   pagerSize = 20
 
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
+
 enableGitInfo = true
 enableRobotsTXT = true
 
