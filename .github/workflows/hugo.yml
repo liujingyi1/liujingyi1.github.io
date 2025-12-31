@@ -18,6 +18,12 @@ jobs:
           submodules: true  # 重要：拉取主题子模块
           fetch-depth: 0
 
+      - name: Remove example sites
+        run: |
+          rm -rf themes/book/exampleSite 2>/dev/null || true
+          rm -rf themes/papermod/exampleSite 2>/dev/null || true
+
+
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
