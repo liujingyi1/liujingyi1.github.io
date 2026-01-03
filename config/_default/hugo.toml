@@ -54,6 +54,8 @@ disableKinds = ['taxonomy', 'taxonomyTerm']
 
 # Hugo Book主题需要的配置
 [params]
+  BookRepo = "https://github.com/liujingyi1/liujingyi1.github.io"
+
   subtitle = "The Best Widgets on Earth"
 
   # (Optional, default light) Sets color theme: light, dark or auto.
