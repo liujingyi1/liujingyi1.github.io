@@ -1,6 +1,6 @@
 ---
 title: "Binder 驱动"
-weight: 2
+weight: 3
 # bookFlatSection: false
 # bookToc: true
 # bookHidden: false
@@ -13,7 +13,7 @@ weight: 2
 
 # 第二章 Binder驱动
 
-先从驱动端讲起，先了解驱动提供了什么能力，然后在了解native层如何使用这些能力。
+先从驱动端讲起，先了解驱动提供了什么能力，然后在了解native层如何使用这些能力。以下都基于Android内核源码的android15-6.6分支。
 
 ### 1. 目录结构
 
@@ -77,5 +77,107 @@ Binder作为Android中主要的IPC通信机制之一（在系统中还有很多�
 | **稳定性** | **引用计数**与**生命周期管理** 由驱动管理，避免资源泄漏 |
 | **设计理念** | **C/S架构**，结构清晰，与Android组件化架构完美契合 |
 
-而这些特性中的一次拷贝是基于什么原理，就是在驱动中体现的。
+而这些特性中的一次拷贝的原理的体现，就是在驱动中。
+
+
+### 3. 几个重要的结构体
+
+```c
+struct binder_ref {
+	/* Lookups needed: */
+	/*   node + proc => ref (transaction) */
+	/*   desc + proc => ref (transaction, inc/dec ref) */
+	/*   node => refs + procs (proc exit) */
+	struct binder_ref_data data;
+	struct rb_node rb_node_desc;
+	struct rb_node rb_node_node;
+	struct hlist_node node_entry;
+	struct binder_proc *proc;
+	struct binder_node *node;
+	struct binder_ref_death *death;
+	struct binder_ref_freeze *freeze;
+};
+```
+
+```c
+struct binder_proc {
+	struct hlist_node proc_node;
+	struct rb_root threads;
+	struct rb_root nodes;
+	struct rb_root refs_by_desc;
+	struct rb_root refs_by_node;
+	struct list_head waiting_threads;
+	int pid;
+	struct task_struct *tsk;
+	const struct cred *cred;
+	struct hlist_node deferred_work_node;
+	int deferred_work;
+	int outstanding_txns;
+	bool is_dead;
+	bool is_frozen;
+	bool sync_recv;
+	bool async_recv;
+	wait_queue_head_t freeze_wait;
+	struct list_head todo;
+	struct binder_stats stats;
+	struct list_head delivered_death;
+	u32 max_threads;
+	int requested_threads;
+	int requested_threads_started;
+	int tmp_ref;
+	struct binder_priority default_priority;
+	struct dentry *debugfs_entry;
+	struct binder_alloc alloc;
+	struct binder_context *context;
+	spinlock_t inner_lock;
+	spinlock_t outer_lock;
+	struct dentry *binderfs_entry;
+	bool oneway_spam_detection_enabled;
+	ANDROID_OEM_DATA(1);
+};
+
+```
+
+```c
+
+struct binder_node {
+	int debug_id;
+	spinlock_t lock;
+	struct binder_work work;
+	union {
+		struct rb_node rb_node;
+		struct hlist_node dead_node;
+	};
+	struct binder_proc *proc;
+	struct hlist_head refs;
+	int internal_strong_refs;
+	int local_weak_refs;
+	int local_strong_refs;
+	int tmp_refs;
+	binder_uintptr_t ptr;
+	binder_uintptr_t cookie;
+	struct {
+		/*
+		 * bitfield elements protected by
+		 * proc inner_lock
+		 */
+		u8 has_strong_ref:1;
+		u8 pending_strong_ref:1;
+		u8 has_weak_ref:1;
+		u8 pending_weak_ref:1;
+	};
+	struct {
+		/*
+		 * invariant after initialization
+		 */
+		u8 sched_policy:2;
+		u8 inherit_rt:1;
+		u8 accept_fds:1;
+		u8 txn_security_ctx:1;
+		u8 min_priority;
+	};
+	bool has_async_transaction;
+	struct list_head async_todo;
+};
+```
 
