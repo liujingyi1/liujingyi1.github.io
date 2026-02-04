@@ -1,5 +1,5 @@
 ---
-title: "Linux Kernel"
+title: "自旋锁 spinlocks"
 weight: 1
 bookCollapseSection: true
 bookFlatSection: false
